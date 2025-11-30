@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin</title></head>
+<body style="font-family:Arial; padding:16px;">
+  <h2>Admin Panel</h2>
+  <div>
+    Admin password: <input id="apw" type="password"> <button onclick="listUsers()">Login & List</button>
+    <pre id="out" style="background:#f8f8f8;padding:10px;"></pre>
+    <hr>
+    <button onclick="forceReveal()">Force Reveal Now</button>
+    <hr>
+    Credit user: <input id="cu" placeholder="username"> Amount: <input id="ca" placeholder="amt"> <button onclick="credit()">Credit</button>
+  </div>
+
+<script>
+const API = location.origin + "/api";
+function listUsers(){
+  let pw = document.getElementById('apw').value;
+  fetch(API + '/admin/listUsers?adminPassword='+encodeURIComponent(pw)).then(r=>r.text()).then(t=>{
+    try{ let arr = JSON.parse(t); document.getElementById('out').innerText = JSON.stringify(arr,null,2); }catch(e){ document.getElementById('out').innerText = t; }
+  });
+}
+function forceReveal(){
+  let pw = document.getElementById('apw').value;
+  fetch(API + '/admin/forceReveal', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'adminPassword='+encodeURIComponent(pw)}).then(r=>r.text()).then(t=>{ document.getElementById('out').innerText = t; });
+}
+function credit(){
+  let pw = document.getElementById('apw').value;
+  let u=document.getElementById('cu').value, a=document.getElementById('ca').value;
+  fetch(API + '/admin/creditUser', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'adminPassword='+encodeURIComponent(pw)+'&username='+encodeURIComponent(u)+'&amount='+encodeURIComponent(a)}).then(r=>r.text()).then(t=>{ document.getElementById('out').innerText = t; });
+}
+</script>
+</body>
+</html>
