@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Game</title></head>
+<body style="font-family:Arial; padding:16px;">
+  <h2>GuessMyNumber — Game</h2>
+  <div>
+    <div>Logged in as: <span id="who"></span> (<a href="#" onclick="logout()">Logout</a>)</div>
+    <div style="margin-top:10px">Balance: ₹<span id="bal">0</span></div>
+    <hr>
+    <div>Current Round: <span id="round">...</span></div>
+    <div>Place bet:</div>
+    <div>
+      Number:
+      <select id="num">
+        <script> for(let i=1;i<=10;i++) document.write('<option>'+i+'</option>'); </script>
+      </select>
+      Amount: <input id="amt" value="10" style="width:80px">
+      <button onclick="placeBet()">Place</button>
+    </div>
+    <p id="msg" style="color:green"></p>
+    <hr>
+    <h4>Your history</h4>
+    <pre id="hist" style="background:#f0f0f0;padding:8px;"></pre>
+    <h4>Revealed Chart (recent)</h4>
+    <div id="chart"></div>
+  </div>
+
+<script>
+const API = location.origin + "/api";
+function start(){
+  let u = localStorage.getItem('g_user'), p = localStorage.getItem('g_pass');
+  if(!u||!p) { location.href='index.html'; return; }
+  document.getElementById('who').innerText = u;
+  fetch(API + '/balance?username='+encodeURIComponent(u)+'&password='+encodeURIComponent(p)).then(r=>r.text()).then(t=>{
+    try{ let j = JSON.parse(t); document.getElementById('bal').innerText = j.balance; }catch(e){}
+  });
+  fetch(API + '/currentRound').then(r=>r.text()).then(t=>{
+    try{ let j=JSON.parse(t); document.getElementById('round').innerText = j.roundId; }catch(e){}
+  });
+  loadHistory(); loadChart();
+  setInterval(()=>{ fetch(API + '/currentRound').then(r=>r.text()).then(t=>{ try{ let j=JSON.parse(t); document.getElementById('round').innerText = j.roundId; }catch(e){} }); fetch(API + '/chart').then(r=>r.text()).then(t=>{ try{ let arr=JSON.parse(t); renderChart(arr); }catch(e){} }); fetch(API + '/balance?username='+encodeURIComponent(u)+'&password='+encodeURIComponent(p)).then(r=>r.text()).then(t=>{ try{let j=JSON.parse(t); document.getElementById('bal').innerText = j.balance;}catch(e){} }); },5000);
+}
+function placeBet(){
+  let u = localStorage.getItem('g_user'), p = localStorage.getItem('g_pass');
+  let num = document.getElementById('num').value, amt = document.getElementById('amt').value;
+  fetch(API + '/placeBet', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'username='+encodeURIComponent(u)+'&password='+encodeURIComponent(p)+'&number='+encodeURIComponent(num)+'&amount='+encodeURIComponent(amt)})
+    .then(r=>r.text()).then(t=>{
+      if (t.indexOf("Insufficient")>=0) document.getElementById('msg').innerText='Insufficient balance';
+      else { document.getElementById('msg').innerText='Bet placed'; loadHistory(); }
+    }).catch(e=>document.getElementById('msg').innerText='Error');
+}
+function loadHistory(){
+  let u = localStorage.getItem('g_user'), p = localStorage.getItem('g_pass');
+  fetch(API + '/history?username='+encodeURIComponent(u)+'&password='+encodeURIComponent(p)).then(r=>r.text()).then(t=>{
+    try{ let arr = JSON.parse(t); let s=''; arr.forEach(x=> s += 'Round '+x.round+' | Num '+x.num+' | ₹'+x.amt+' | '+x.ts + '\\n'); document.getElementById('hist').innerText = s; }catch(e){}
+  });
+}
+function loadChart(){ fetch(API + '/chart').then(r=>r.text()).then(t=>{ try{ let arr=JSON.parse(t); renderChart(arr); }catch(e){} }); }
+function renderChart(arr){ document.getElementById('chart').innerText = arr.slice(-20).join(', '); }
+function logout(){ localStorage.removeItem('g_user'); localStorage.removeItem('g_pass'); location.href='index.html'; }
+start();
+</script>
+</body>
+</html>
