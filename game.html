@@ -3,50 +3,158 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Game</title>
+  <title>GuessMyNumber — Game</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+    }
+    .modal-content {
+      background: #fff;
+      padding: 20px;
+      margin: 15% auto;
+      width: 80%;
+      max-width: 300px;
+      text-align: center;
+      border-radius: 8px;
+    }
+    .closeBtn {
+      margin-top: 15px;
+      padding: 5px 10px;
+      background: #2196F3;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 
 <body>
-  <h2>GuessMyNumber — Game</h2>
+<h2>GuessMyNumber — Game</h2>
 
-  <div class="box">
-    <div>Logged in as: <span id="who"></span> (<a href="#" onclick="logout()">Logout</a>)</div>
-
-    <div class="balBox">
-      Balance: ₹<span id="bal">0</span>
-    </div>
-
-    <hr>
-
-    <div>Current Round: <span id="round">...</span></div>
-
-    <div style="margin-top:5px">Place bet:</div>
-    <div class="betBox">
-      Number:
-      <select id="num">
-        <script>
-          for (let i = 1; i <= 10; i++)
-            document.write('<option>' + i + '</option>');
-        </script>
-      </select>
-
-      Amount:
-      <input id="amt" value="10">
-      <button onclick="placeBet()">Place</button>
-    </div>
-
-    <p id="msg" class="green"></p>
-
-    <hr>
-
-    <h4>Your history</h4>
-    <pre id="hist" class="historyBox"></pre>
-
-    <h4>Revealed Chart (recent)</h4>
-    <div id="chart" class="chartBox"></div>
+<div class="box">
+  <div>Logged in as: <span id="who"></span> (<a href="#" onclick="logout()">Logout</a>)</div>
+  <div class="balBox">Balance: ₹<span id="bal">0</span></div>
+  <hr>
+  <div>Current Round: <span id="round">...</span> | Time left: <span id="timer">--</span>s</div>
+  <div style="margin-top:5px">Place bet:</div>
+  <div class="betBox">
+    Number:
+    <select id="num">
+      <script>
+        for(let i=1;i<=10;i++)
+          document.write('<option>'+i+'</option>');
+      </script>
+    </select>
+    Amount:
+    <input id="amt" value="10">
+    <button onclick="placeBet()">Place</button>
   </div>
+  <p id="msg" class="green"></p>
+  <hr>
+  <h4>Your history</h4>
+  <pre id="hist" class="historyBox"></pre>
+  <h4>Revealed Chart (recent)</h4>
+  <div id="chart" class="chartBox"></div>
+</div>
 
-  <script src="game.js"></script>
+<!-- Modal -->
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <p id="modalText"></p>
+    <button class="closeBtn" onclick="closeModal()">Close</button>
+  </div>
+</div>
+
+<script>
+const API = location.origin + "/api";
+const socket = io();
+let roundTime = 60; // default countdown in seconds
+let timerInterval;
+
+function start() {
+  let u = localStorage.getItem('g_user'), p = localStorage.getItem('g_pass');
+  if(!u||!p){ location.href='index.html'; return; }
+  document.getElementById('who').innerText = u;
+  loadAll();
+}
+
+function loadAll(){
+  loadBalance();
+  loadCurrentRound();
+  loadHistory();
+  loadChart();
+}
+
+function loadBalance(){
+  let u=localStorage.getItem('g_user'),p=localStorage.getItem('g_pass');
+  fetch(`${API}/balance?username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}`)
+    .then(r=>r.json())
+    .then(j=>document.getElementById('bal').innerText=j.balance);
+}
+
+function loadCurrentRound(){
+  fetch(`${API}/currentRound`).then(r=>r.json()).then(j=>{
+    document.getElementById('round').innerText=j.roundId;
+    roundTime = 60; startTimer();
+  });
+}
+
+function startTimer(){
+  clearInterval(timerInterval);
+  timerInterval = setInterval(()=>{
+    if(roundTime<=0) { clearInterval(timerInterval); return; }
+    roundTime--;
+    document.getElementById('timer').innerText = roundTime;
+  },1000);
+}
+
+function loadHistory(){
+  let u = localStorage.getItem('g_user');
+  fetch(`${API}/history?username=${encodeURIComponent(u)}`).then(r=>r.json()).then(arr=>{
+    let s='';
+    arr.forEach(x=> s+=`Round ${x.round} | Num ${x.number} | ₹${x.amt} | ${x.ts}\n`);
+    document.getElementById('hist').innerText = s;
+  });
+}
+
+function loadChart(){
+  fetch(`${API}/chart`).then(r=>r.json()).then(arr=>{
+    document.getElementById('chart').innerText=arr.slice(-20).join(', ');
+  });
+}
+
+function placeBet(){
+  let u=localStorage.getItem('g_user'),p=localStorage.getItem('g_pass');
+  let num=document.getElementById('num').value, amt=document.getElementById('amt').value;
+  fetch(`${API}/placeBet`,{
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:`username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}&number=${encodeURIComponent(num)}&amount=${encodeURIComponent(amt)}`
+  }).then(r=>r.text()).then(t=>{
+    if(t.indexOf("Insufficient")>=0) document.getElementById('msg').innerText='Insufficient balance';
+    else { document.getElementById('msg').innerText='Bet placed'; loadAll(); }
+  }).catch(e=>document.getElementById('msg').innerText='Error');
+}
+
+function logout(){ localStorage.removeItem('g_user'); localStorage.removeItem('g_pass'); location.href='index.html'; }
+
+socket.on('round:updated',data=>{ loadAll(); roundTime=60; startTimer(); });
+socket.on('round:closed',data=>{ showModal(`Round ${data.roundId} closed! Winning number: ${data.winningNumber}`); loadAll(); });
+socket.on('bet:placed',bet=>{ loadChart(); loadHistory(); loadBalance(); });
+
+function showModal(text){ document.getElementById('modalText').innerText=text; document.getElementById('modal').style.display='block'; }
+function closeModal(){ document.getElementById('modal').style.display='none'; }
+
+start();
+</script>
 </body>
 </html>
