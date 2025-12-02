@@ -1,0 +1,21 @@
+body {
+  font-family: Arial;
+  padding: 20px;
+}
+
+.box {
+  max-width: 420px;
+}
+
+input {
+  width: 100%;
+  padding: 8px;
+  font-size: 16px;
+}
+
+button {
+  padding: 10px;
+  width: 100%;
+  font-size: 16px;
+  cursor: pointer;
+}
