@@ -1,0 +1,18 @@
+{
+  "name": "play-earn",
+  "version": "1.0.0",
+  "description": "GuessMyNumber multiplayer game with Firebase backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "Maanu",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "firebase-admin": "^12.7.0",
+    "socket.io": "^4.7.2"
+  }
+}
