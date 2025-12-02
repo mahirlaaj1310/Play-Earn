@@ -1,9 +1,16 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GuessMyNumber - Login</title></head>
-<body style="font-family:Arial; padding:20px;">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>GuessMyNumber - Login</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
   <h2>GuessMyNumber — Login / Register</h2>
-  <div style="max-width:420px;">
+
+  <div class="box">
     <h3>Login</h3>
     <input id="li_user" placeholder="username"><br><br>
     <input id="li_pass" placeholder="password" type="password"><br><br>
@@ -11,6 +18,7 @@
     <p id="li_msg"></p>
 
     <hr>
+
     <h3>Register</h3>
     <input id="re_user" placeholder="new username"><br><br>
     <input id="re_pass" placeholder="password" type="password"><br><br>
@@ -18,33 +26,6 @@
     <p id="re_msg"></p>
   </div>
 
-<script>
-const API = location.origin + "/api";
-
-function login(){
-  let u=document.getElementById('li_user').value.trim();
-  let p=document.getElementById('li_pass').value.trim();
-  if(!u||!p){ document.getElementById('li_msg').innerText='Enter creds'; return; }
-  fetch(API + '/login', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'username='+encodeURIComponent(u)+'&password='+encodeURIComponent(p)})
-    .then(r=>r.text()).then(t=>{
-      if (t.startsWith("Invalid")||t.startsWith("Invalid")) { document.getElementById('li_msg').innerText='Invalid'; return; }
-      // store in localStorage and open game
-      localStorage.setItem('g_user', u);
-      localStorage.setItem('g_pass', p);
-      window.location.href = 'game.html';
-    }).catch(e=>document.getElementById('li_msg').innerText='Error');
-}
-
-function registerUser(){
-  let u=document.getElementById('re_user').value.trim();
-  let p=document.getElementById('re_pass').value.trim();
-  if(!u||!p){ document.getElementById('re_msg').innerText='Enter'; return; }
-  fetch(API + '/register', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'username='+encodeURIComponent(u)+'&password='+encodeURIComponent(p)})
-    .then(r=>r.text()).then(t=>{
-      if (t.indexOf("User exists")>=0) document.getElementById('re_msg').innerText='User exists';
-      else { document.getElementById('re_msg').innerText='Registered. Login above.'; }
-    }).catch(e=>document.getElementById('re_msg').innerText='Error');
-}
-</script>
+  <script src="script.js"></script>
 </body>
 </html>
